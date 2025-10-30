@@ -1,0 +1,11 @@
+program simple;
+var x, y : int;
+    result : float;
+
+main() {
+    x = 5;
+    y = 10;
+    result = x + y * 2.5;
+    print("Result is:", result);
+}
+end
