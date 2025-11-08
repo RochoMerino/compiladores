@@ -1,0 +1,14 @@
+// ERROR SEMÁNTICO: Parámetro doblemente declarado
+// Esperado: RedefinitionError en línea 5
+
+program test;
+
+void myFunc(x : int, x : float) [  // ERROR: parámetro 'x' duplicado
+{
+    print(x);
+}
+];
+
+main() {
+}
+end
