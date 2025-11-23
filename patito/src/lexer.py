@@ -1,3 +1,61 @@
+'''
+PatitoLexer es el analizador lexico (scanner)
+
+su trabajo es leer el archivo de texto de entrada caracter
+por caracter y generar tokens (palabras validas de el lenguaje patito)
+
+PatitoLexer define expresiones regulares para identificar
+numeros:
+CTE_INT
+CTE_FLOAT
+
+strings:
+CTE_STRING
+
+identificadores:
+ID
+
+palabras reservadas:
+PROGRAM
+VAR
+INT
+FLOAT
+VOID
+MAIN
+IF
+ELSE
+WHILE
+DO
+PRINT
+END
+
+simbolos:
+PLUS
+MINUS
+MULT
+DIV
+GT
+LT
+NEQ
+EQ
+LPAREN
+RPAREN
+LBRACE
+RBRACE
+LBRACKET
+RBRACKET
+COMMA
+SEMICOLON
+COLON
+
+ejemplo:
+convierte 
+x = 5; 
+en una sequencia de tokens: 
+ID(x) EQ(=) CTE_INT(5) SEMICOLON(;)
+'''
+
+
 import ply.lex as lex
 
 class PatitoLexer:

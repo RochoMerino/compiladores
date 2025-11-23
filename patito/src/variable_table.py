@@ -1,4 +1,21 @@
-from patito.errors import RedefinitionError, UndefinedVariableError
+'''
+VariableTable es una clase que representa la tabla de variables del lenguaje Patito.
+
+Es una tabla que contiene las variables declaradas en el programa
+
+Cada variable es una tupla de la forma (nombre, tipo, scope, linea)
+
+Donde:
+    nombre: nombre de la variable
+    tipo: tipo de la variable
+    scope: scope de la variable
+    linea: linea en la que se declaro la variable
+
+
+'''
+
+
+from errors import RedefinitionError, UndefinedVariableError
 
 
 class VariableInfo:

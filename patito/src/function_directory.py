@@ -1,5 +1,5 @@
-from patito.errors import RedefinitionError, UndefinedVariableError, TypeError as PatitoTypeError
-from patito.variable_table import VariableTable
+from errors import RedefinitionError, UndefinedVariableError, TypeError as PatitoTypeError
+from variable_table import VariableTable
 
 
 class ParameterInfo:

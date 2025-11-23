@@ -1,7 +1,25 @@
+'''
+PatitoParser es el analizador sintactico
+
+toma los tokens que dejo el lexer y verifica que sigan las reglas gramaticales del lenguaje
+en el orden correcto
+
+aqui es donde sucede la magia de la generacion de cuadruplos. PatitoParser tiene "puntos neuralgicos"
+cuando detecta una operacion completa (a+b) llama a las rutinas para generar los cuadruplos inmediatamente
+
+PatitoParser cordina a todos los demas componentes 
+'''
+
+
 import ply.yacc as yacc
-from patito.lexer import PatitoLexer
-from patito.errors import SyntaxError as PatitoSyntaxError
-from patito.semantic_analyzer import SemanticAnalyzer
+from lexer import PatitoLexer
+from errors import SyntaxError as PatitoSyntaxError
+from semantic_analyzer import SemanticAnalyzer
+from quadruple_generator import QuadrupleGenerator
+from temp_manager import TempManager
+from operand_stack import OperandStack
+from operator_stack import OperatorStack
+from type_stack import TypeStack
 
 
 class PatitoParser:
@@ -12,6 +30,13 @@ class PatitoParser:
         self.parser = yacc.yacc(module=self, debug=False)
         self.errors = []
         self.semantic = SemanticAnalyzer()
+
+        # Quadruple generation components
+        self.quad_gen = QuadrupleGenerator()
+        self.temp_mgr = TempManager()
+        self.operand_stack = OperandStack()
+        self.operator_stack = OperatorStack()
+        self.type_stack = TypeStack()
 
     def p_programa(self, p):
         '''programa : PROGRAM ID SEMICOLON vars funcs MAIN LPAREN RPAREN body END'''
@@ -118,6 +143,11 @@ class PatitoParser:
         expr_info = p[3]
         expr_type = self._get_expr_type(expr_info)
         self.semantic.check_assignment(var_name, expr_type, p.lineno(1))
+
+        # PN_ASSIGNMENT: Generate assignment quadruple
+        result_operand = self.operand_stack.pop_operand()
+        self.quad_gen.generate('=', result_operand, None, var_name)
+
         p[0] = ('assign', p[1], p[3])
 
     def p_condition(self, p):
@@ -134,6 +164,26 @@ class PatitoParser:
 
     def p_print(self, p):
         '''print : PRINT LPAREN print_list RPAREN SEMICOLON'''
+        # PN_PRINT: Generate PRINT quadruples for each item
+        # Items are processed in reverse order from the stack
+        print_items = p[3]
+        num_expressions = sum(1 for item in print_items if not (isinstance(item, tuple) and item[0] == 'string_literal'))
+
+        # Pop operands in reverse order
+        operands = []
+        for _ in range(num_expressions):
+            operands.insert(0, self.operand_stack.pop_operand())
+
+        operand_idx = 0
+        for item in print_items:
+            if isinstance(item, tuple) and item[0] == 'string_literal':
+                # String literal - print directly
+                self.quad_gen.generate('PRINT', item[1], None, None)
+            else:
+                # Expression result
+                self.quad_gen.generate('PRINT', operands[operand_idx], None, None)
+                operand_idx += 1
+
         p[0] = ('print', p[3])
 
     def p_print_list(self, p):
@@ -147,7 +197,16 @@ class PatitoParser:
     def p_print_item(self, p):
         '''print_item : expression
                       | CTE_STRING'''
-        p[0] = p[1]
+        # CTE_STRING is identified by the grammar rule itself
+        if len(p) == 2 and self._is_from_rule(p.slice[1].type, 'CTE_STRING'):
+            # String constant - wrap in quotes for display
+            p[0] = ('string_literal', f'"{p[1]}"')
+        else:
+            p[0] = p[1]
+
+    def _is_from_rule(self, token_type, expected_type):
+        """Check if a token is of the expected type."""
+        return token_type == expected_type
 
     def p_expression(self, p):
         '''expression : exp
@@ -161,6 +220,19 @@ class PatitoParser:
             right_type = self._get_expr_type(p[3])
             operator = p[2]
             result_type = self.semantic.check_operation(left_type, operator, right_type, p.lineno(2))
+
+            # PN_RELATIONAL: Generate quadruple for relational operators
+            right_operand = self.operand_stack.pop_operand()
+            left_operand = self.operand_stack.pop_operand()
+            self.type_stack.pop_type()
+            self.type_stack.pop_type()
+
+            temp = self.temp_mgr.generate()
+            self.quad_gen.generate(operator, left_operand, right_operand, temp)
+
+            self.operand_stack.push_operand(temp)
+            self.type_stack.push_type(result_type)
+
             p[0] = ('type_info', result_type, (operator, p[1], p[3]))
 
     def p_exp(self, p):
@@ -174,6 +246,19 @@ class PatitoParser:
             right_type = self._get_expr_type(p[3])
             operator = p[2]
             result_type = self.semantic.check_operation(left_type, operator, right_type, p.lineno(2))
+
+            # PN_OPERATION: Generate quadruple for +/-
+            right_operand = self.operand_stack.pop_operand()
+            left_operand = self.operand_stack.pop_operand()
+            self.type_stack.pop_type()
+            self.type_stack.pop_type()
+
+            temp = self.temp_mgr.generate()
+            self.quad_gen.generate(operator, left_operand, right_operand, temp)
+
+            self.operand_stack.push_operand(temp)
+            self.type_stack.push_type(result_type)
+
             p[0] = ('type_info', result_type, (operator, p[1], p[3]))
 
     def p_termino(self, p):
@@ -187,6 +272,19 @@ class PatitoParser:
             right_type = self._get_expr_type(p[3])
             operator = p[2]
             result_type = self.semantic.check_operation(left_type, operator, right_type, p.lineno(2))
+
+            # PN_OPERATION: Generate quadruple for *//
+            right_operand = self.operand_stack.pop_operand()
+            left_operand = self.operand_stack.pop_operand()
+            self.type_stack.pop_type()
+            self.type_stack.pop_type()
+
+            temp = self.temp_mgr.generate()
+            self.quad_gen.generate(operator, left_operand, right_operand, temp)
+
+            self.operand_stack.push_operand(temp)
+            self.type_stack.push_type(result_type)
+
             p[0] = ('type_info', result_type, (operator, p[1], p[3]))
 
     def p_factor(self, p):
@@ -196,18 +294,35 @@ class PatitoParser:
                   | cte
                   | ID'''
         if len(p) == 4:
+            # Parenthesized expression - operand already on stack
             p[0] = p[2]
         elif len(p) == 3:
             factor_type = self._get_expr_type(p[2])
             if p[1] == '-':
+                # Unary minus - generate quadruple
+                operand = self.operand_stack.pop_operand()
+                self.type_stack.pop_type()
+
+                temp = self.temp_mgr.generate()
+                self.quad_gen.generate('unary-', operand, None, temp)
+
+                self.operand_stack.push_operand(temp)
+                self.type_stack.push_type(factor_type)
+
                 p[0] = ('type_info', factor_type, ('unary', p[1], p[2]))
             else:
+                # Unary plus - no operation needed
                 p[0] = p[2]
         else:
+            # ID or constant - already handled in p_cte and below
             if isinstance(p[1], str) and not p[1].replace('.', '').replace('-', '').replace('+', '').isdigit():
+                # PN_PUSH_OPERAND: Variable reference
                 var_type = self.semantic.lookup_variable(p[1], p.lineno(1))
+                self.operand_stack.push_operand(p[1])
+                self.type_stack.push_type(var_type)
                 p[0] = ('type_info', var_type, ('id', p[1]))
             else:
+                # Constant - handled in p_cte
                 p[0] = p[1]
 
     def p_cte(self, p):
@@ -218,6 +333,10 @@ class PatitoParser:
             const_type = 'float'
         else:
             const_type = 'int'
+
+        # PN_PUSH_OPERAND: Constant
+        self.operand_stack.push_operand(str(value))
+        self.type_stack.push_type(const_type)
 
         p[0] = ('type_info', const_type, ('const', value))
 
@@ -280,6 +399,13 @@ class PatitoParser:
         self.errors = []
         self.semantic.reset()
 
+        # Reset quadruple generation structures
+        self.quad_gen.clear()
+        self.temp_mgr.reset()
+        self.operand_stack.clear()
+        self.operator_stack.clear()
+        self.type_stack.clear()
+
         try:
             result = self.parser.parse(data, lexer=self.lexer.lexer)
             return result
@@ -288,6 +414,14 @@ class PatitoParser:
 
     def print_semantic_info(self):
         self.semantic.print_semantic_info()
+
+    def print_quadruples(self):
+        """Print the generated quadruples."""
+        self.quad_gen.print_quadruples()
+
+    def get_quadruples(self):
+        """Get the list of generated quadruples."""
+        return self.quad_gen.get_quadruples()
 
 
 def build_parser():

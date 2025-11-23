@@ -1,3 +1,23 @@
+'''
+SemanticCube es una clase que representa el cubo semantico del lenguaje Patito.
+
+Actua como un juez que decide si una operacion es valida o no
+
+Es una tabla que contiene las operaciones validas entre los diferentes tipos de datos
+
+Cada operacion es una tupla de la forma (tipo_izq, operador, tipo_der) -> tipo_resultante
+
+Por ejemplo:
+    ('int', '+', 'int') -> 'int'
+    ('int', '+', 'float') -> 'float'
+    ('float', '+', 'int') -> 'float'
+    ('float', '+', 'float') -> 'float'
+    ('int', '=', 'int') -> 'int'
+    ('float', '=', 'float') -> 'float'
+    ('float', '=', 'int') -> 'float'
+'''
+
+
 class SemanticCube:
 
     def __init__(self):
@@ -5,29 +25,31 @@ class SemanticCube:
 
     def _build_semantic_cube(self):
         cube = {}
+        self.arithmetic_operations = ['+', '-', '*', '/']
+        self.comparison_operations = ['>', '<', '!=']
 
-        for op in ['+', '-', '*', '/']:
+        for op in self.arithmetic_operations:
             cube[('int', op, 'int')] = 'int'
 
-        for op in ['+', '-', '*', '/']:
+        for op in self.arithmetic_operations:
             cube[('int', op, 'float')] = 'float'
 
-        for op in ['+', '-', '*', '/']:
+        for op in self.arithmetic_operations:
             cube[('float', op, 'int')] = 'float'
 
-        for op in ['+', '-', '*', '/']:
+        for op in self.arithmetic_operations:
             cube[('float', op, 'float')] = 'float'
 
-        for op in ['>', '<', '!=']:
+        for op in self.comparison_operations:
             cube[('int', op, 'int')] = 'int'
 
-        for op in ['>', '<', '!=']:
+        for op in self.comparison_operations:
             cube[('int', op, 'float')] = 'int'
 
-        for op in ['>', '<', '!=']:
+        for op in self.comparison_operations:
             cube[('float', op, 'int')] = 'int'
 
-        for op in ['>', '<', '!=']:
+        for op in self.comparison_operations:
             cube[('float', op, 'float')] = 'int'
 
         cube[('int', '=', 'int')] = 'int'
@@ -53,7 +75,7 @@ class SemanticCube:
                 operators[op] = []
             operators[op].append((left, right, result))
 
-        for op in ['+', '-', '*', '/', '>', '<', '!=', '=']:
+        for op in self.arithmetic_operations + self.comparison_operations + ['=']:
             if op in operators:
                 print(f"\n{self._get_operator_name(op)}:")
                 print("-" * 50)

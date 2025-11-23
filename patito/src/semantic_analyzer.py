@@ -1,7 +1,7 @@
-from patito.semantic_cube import SemanticCube
-from patito.variable_table import VariableTable
-from patito.function_directory import FunctionDirectory
-from patito.errors import (
+from semantic_cube import SemanticCube
+from variable_table import VariableTable
+from function_directory import FunctionDirectory
+from errors import (
     SemanticError,
     TypeError as PatitoTypeError,
     UndefinedVariableError,

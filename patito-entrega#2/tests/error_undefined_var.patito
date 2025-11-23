@@ -1,9 +1,0 @@
-// ERROR SEMÁNTICO: Variable no declarada
-// Esperado: UndefinedVariableError en línea 6
-
-program test;
-
-main() {
-    y = 10;  // ERROR: 'y' no ha sido declarada
-}
-end
