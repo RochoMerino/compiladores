@@ -449,118 +449,181 @@ class PatitoParser:
                   | f_call
                   | cte
                   | ID'''
+        # Si tienes una length de 2 y representa una llamada a una func
         if len(p) == 2 and isinstance(p[1], tuple) and p[1][0] == 'call':
+             # "Devolvemos" la llamada a la func con p1
              p[0] = p[1]
+             # Salimos porque ya procesamos el caso de llamada a func
              return
+        # Si tienes len 4 entonces es una expresion entre parentesis
         elif len(p) == 4:
+            # "Asignamos" la expresion
             p[0] = p[2]
+        # Si tenemos un len de 3 entonces es un tipo de factor
         elif len(p) == 3:
+            # Tipo de factor
             factor_type = self._get_expr_type(p[2])
+            # Si es un factor negativo
             if p[1] == '-':
+                # operand
                 operand = self.operand_stack.pop()
+                # tipo
                 self.type_stack.pop()
-
+                # Direccion temporal para el resultado de la operacion
                 temp = self.semantic.get_temp_address(factor_type)
+                # Generamos cuadruplo de unary- porque es un factor negativo como -5
                 self.quad_gen.generate('unary-', operand, None, temp)
-
+                # Agregamos el resultado de la operacion a la pila de operands
                 self.operand_stack.append(temp)
+                # Agregamos el tipo de resultado a la pila de tipos
                 self.type_stack.append(factor_type)
-
+                # "Devolvemos" el tipo de resultado, con el operador, con el operand izquierdo y el operand derecho
                 p[0] = ('type_info', factor_type, ('unary', p[1], p[2]))
             else:
+                # "Devolvemos" el factor con p2 porque es un factor positivo
                 p[0] = p[2]
         else:
+            # Si p1 es un string y no es un numero (id)
             if isinstance(p[1], str) and not p[1].replace('.', '').replace('-', '').replace('+', '').isdigit():
+                # Buscamos tipo de la variable
                 var_type = self.semantic.lookup_variable(p[1], p.lineno(1))
+                # Obtenemos direccion de la variable
                 address = self.semantic.get_variable_address(p[1], p.lineno(1))
+                # Agregamos la direccion a la pila de operand
                 self.operand_stack.append(address)
+                # Agregamos tipo de la var a la pila de tipos
                 self.type_stack.append(var_type)
+                # "Devolvemos" el tipo de la variable, con el id
                 p[0] = ('type_info', var_type, ('id', p[1]))
+            # Si p1 es un numero entonces es constante
             else:
+                # "Devolvemos" la constante tal cual 
                 p[0] = p[1]
 
     def p_cte(self, p):
         '''cte : CTE_INT
                | CTE_FLOAT'''
+        # Valor de la constante
         value = p[1]
+        # Si el valor tiene un . entonces es un float
         if '.' in str(value):
             const_type = 'float'
+        # Si no tiene un . entonces es un int
         else:
             const_type = 'int'
 
+        # Obtenemos la direccion de la constante
         address = self.semantic.get_const_address(const_type, value)
+        # Agregamos la direccion de la constante a la pila de operands
         self.operand_stack.append(address)
+        # Agregamos el tipo de la constante a la pila de tipos
         self.type_stack.append(const_type)
-
+        # "Devolvemos" el tipo de la constante, con el valor
         p[0] = ('type_info', const_type, ('const', value))
 
     def p_f_call(self, p):
         '''f_call : ID LPAREN expression_list RPAREN
                   | ID LPAREN RPAREN'''
+        # Nombre de la funcion
         func_name = p[1]
 
+        # Si tienes una lista de expresiones
         if len(p) == 5:
+            # Argumentos de la lista de expresiones
             arg_expressions = p[3]
+            # Tipos de los argumentos de la lista de expresiones
             arg_types = [self._get_expr_type(expr) for expr in arg_expressions]
+        # Si no tienes una lista de expresiones entonces no hay argumentos 
         else:
             arg_types = []
 
+        # Checamos con el cubo si la llamada a la funcion es valida
         self.semantic.validate_function_call(func_name, arg_types, p.lineno(1))
 
+        # GENERAMOS cuadruplo de ERA con nombre de la funcion
         self.quad_gen.generate('ERA', func_name, None, None)
 
+        # Numero de argumentos
         num_args = len(arg_types)
+        # Direcciones de los argumentos
         argument_addresses = []
+        # Por cada arugmento
         for _ in range(num_args):
+            # Agregamos la direccion del argumento a la lista de direcciones de argumentos
             argument_addresses.insert(0, self.operand_stack.pop())
+            # Sacamos el tipo de la pila de tipos
             self.type_stack.pop()
-            
+        
+        # Por cada argumento
         for i, arg_addr in enumerate(argument_addresses):
+            # Generamos el cuadruplo con PARAM, argumento y nombre de parametro
             self.quad_gen.generate('PARAM', arg_addr, None, f"param{i+1}")
         
+        # Obtenemos el cuadruplo de inicio de la funcion
         start_quad = self.semantic.get_function_start_quad(func_name)
+        # Si no hay cuadruplo de inicio
         if start_quad is None:
             pass
-            
+        # Cuadruplo de GOSUB con el cuadruplo de inicio de la funcion
         self.quad_gen.generate('GOSUB', start_quad, None, None)
 
+        # Direccion de retorno de la funcion
         return_addr = self.semantic.get_function_return_address(func_name)
+        # Si hay direccion de retorno
         if return_addr is not None:
+            # Obtenemos informacion de la funcion
             func_info = self.semantic.function_directory.get_function(func_name)
+            # Obtenemos el tipo de retorno de la funcion
             return_type = func_info.return_type
-            
+            # Direccion temporal para el resultado de la operacion
             temp_addr = self.semantic.get_temp_address(return_type)
+            # Generamos el cuadruplo de asignacion para el valor que retorna la funcion
             self.quad_gen.generate('=', return_addr, None, temp_addr)
-            
+            # Agregamos la direccion temporal a la pila de operands
             self.operand_stack.append(temp_addr)
+            # Agregamos el tipo de retorno a la pila de tipos
             self.type_stack.append(return_type)
 
+        # Si tienes lista de expresiones
         if len(p) == 5:
+            # "Devolvemos" el call con el nombre de la func y la lista de expresioens
             p[0] = ('call', p[1], p[3])
+        # Si no tienes entonces nadamas call con el nombre de la func y la lista vacia
         else:
             p[0] = ('call', p[1], [])
 
     def p_expression_list(self, p):
         '''expression_list : expression COMMA expression_list
                            | expression'''
+        # Si tienes lista de expresiones entonces devolvemos la lista de expresiones con p1 y p3
         if len(p) == 4:
             p[0] = [p[1]] + p[3]
+        # Si no tienes lista de expresiones entonces devolvemos la lista de expresiones con p1
         else:
             p[0] = [p[1]]
 
     def _get_expr_type(self, expr):
+        # Si la expresion es una tupla
         if isinstance(expr, tuple):
+            # Si empieza con type_info ya fue procesada
             if expr[0] == 'type_info':
+                # Regresamos el tipo de la expresion
                 return expr[1]
+            # Si tiene 3 elementos pero no empieza con type_info
             elif len(expr) == 3:
+                # Regresamos un int por defecto...
                 return 'int'
 
+        # Si la expresion es un string
         if isinstance(expr, str):
+            # Si tiene un . entonces float
             if '.' in expr:
                 return 'float'
+            # Si no tiene . entonces int
             else:
                 return 'int'
 
+        # Si no es tupla ni string entonces regreamos int por defecto
         return 'int'
 
     def p_empty(self, p):
@@ -568,43 +631,52 @@ class PatitoParser:
         pass
 
     def p_error(self, p):
+        # Si hay un token entonces es un error de token
         if p:
             error_msg = f"Unexpected token '{p.value}'"
             self.errors.append(error_msg)
             raise Exception(error_msg)
+        # Si no hay un token entonces es un error de fin de input
         else:
             error_msg = "Unexpected end of input"
             self.errors.append(error_msg)
             raise Exception(error_msg)
 
     def parse(self, data):
+        # Limpiamos lista de errores
         self.errors = []
+        # Reset semantica
         self.semantic.reset()
-
-        # Reset quadruple generation structures
+        # Limpiamos la pila de cuadruplos
         self.quad_gen.clear()
-
+        # Limpiamos la pila de operands
         self.operand_stack.clear()
-        # self.operator_stack.clear() removed
+        # Limpiamos la pila de tipos
         self.type_stack.clear()
 
+        # Parse codigo
         try:
             result = self.parser.parse(data, lexer=self.lexer.lexer)
             return result
+        # Return error
         except Exception as e:
             raise
 
     def print_semantic_info(self):
+        # Imprimimos la informacion semantica
         self.semantic.print_semantic_info()
 
     def print_quadruples(self):
         """Print the generated quadruples."""
+        # Imprimimos los cuadruplos generados
         self.quad_gen.print_quadruples()
 
     def get_quadruples(self):
         """Get the list of generated quadruples."""
+        # Obtenemos la lista de cuadruplos generados
         return self.quad_gen.get_quadruples()
 
 
 def build_parser():
+    # Devolvemos el objeto PatitoParser
     return PatitoParser()
