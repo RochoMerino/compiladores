@@ -676,7 +676,6 @@ class PatitoParser:
         # Obtenemos la lista de cuadruplos generados
         return self.quad_gen.get_quadruples()
 
-
 def build_parser():
     # Devolvemos el objeto PatitoParser
     return PatitoParser()

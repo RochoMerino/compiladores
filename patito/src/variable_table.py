@@ -1,21 +1,5 @@
-'''
-VariableTable es una clase que representa la tabla de variables del lenguaje Patito.
-
-Es una tabla que contiene las variables declaradas en el programa
-
-Cada variable es una tupla de la forma (nombre, tipo, scope, linea)
-
-Donde:
-    nombre: nombre de la variable
-    tipo: tipo de la variable
-    scope: scope de la variable
-    linea: linea en la que se declaro la variable
-
-
-'''
 
 class VariableInfo:
-
     def __init__(self, name, var_type, scope, line, address=None):
         self.name = name
         self.var_type = var_type
@@ -31,7 +15,6 @@ class VariableInfo:
 
 
 class VariableTable:
-
     def __init__(self, scope_name='global'):
         self.scope_name = scope_name
         self.variables = {}
@@ -91,7 +74,6 @@ class VariableTable:
 
 
 class ScopedVariableTable:
-
     def __init__(self):
         self.global_table = VariableTable('global')
         self.local_table = None

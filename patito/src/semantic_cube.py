@@ -1,22 +1,3 @@
-'''
-SemanticCube es una clase que representa el cubo semantico del lenguaje Patito.
-
-Actua como un juez que decide si una operacion es valida o no
-
-Es una tabla que contiene las operaciones validas entre los diferentes tipos de datos
-
-Cada operacion es una tupla de la forma (tipo_izq, operador, tipo_der) -> tipo_resultante
-
-Por ejemplo:
-    ('int', '+', 'int') -> 'int'
-    ('int', '+', 'float') -> 'float'
-    ('float', '+', 'int') -> 'float'
-    ('float', '+', 'float') -> 'float'
-    ('int', '=', 'int') -> 'int'
-    ('float', '=', 'float') -> 'float'
-    ('float', '=', 'int') -> 'float'
-'''
-
 
 class SemanticCube:
 

@@ -3,12 +3,11 @@ from variable_table import VariableTable
 
 
 class ParameterInfo:
-
     def __init__(self, name, param_type, position):
         self.name = name
         self.param_type = param_type
         self.position = position
-
+        
     def __repr__(self):
         return f"ParameterInfo({self.name}, {self.param_type}, pos={self.position})"
 
@@ -17,7 +16,6 @@ class ParameterInfo:
 
 
 class FunctionInfo:
-
     def __init__(self, name, return_type, line):
         self.name = name
         self.return_type = return_type
@@ -26,7 +24,7 @@ class FunctionInfo:
         self.line = line
         self.start_quad = None
         self.return_address = None
-        self.resource_needs = {} # To store memory usage info
+        self.resource_needs = {}
 
     def add_parameter(self, name, param_type, line, address=None):
         if any(p.name == name for p in self.params):

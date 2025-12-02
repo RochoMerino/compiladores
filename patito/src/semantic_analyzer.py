@@ -4,9 +4,7 @@ from function_directory import FunctionDirectory
 from memory_manager import MemoryManager
 
 
-
 class SemanticAnalyzer:
-
     def __init__(self):
         self.semantic_cube = SemanticCube()
         self.global_vars = VariableTable('global')
@@ -52,14 +50,12 @@ class SemanticAnalyzer:
         self.function_directory.add_function(name, return_type, line)
         self.current_function = name
         self.memory_manager.reset_local_memory()
-        self.function_directory.start_function(name) # Moved from enter_function
+        self.function_directory.start_function(name) 
         
         if return_type != 'void':
             # Allocate global address for return value
             address = self.memory_manager.get_global_address(return_type)
             self.function_directory.set_return_address(address)
-
-    # enter_function method removed as its logic is integrated into declare_function
 
     def exit_function(self):
         self.current_function = None
@@ -163,7 +159,6 @@ class SemanticAnalyzer:
 
 
 class ExpressionInfo:
-
     def __init__(self, expr_type, value=None):
         self.expr_type = expr_type
         self.value = value

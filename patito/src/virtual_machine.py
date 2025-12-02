@@ -5,20 +5,15 @@ class VirtualMachine:
         self.quadruples = []
         self.instruction_pointer = 0
         
-        # Memory Segments
         self.global_memory = {}
         self.constant_memory = {}
         
-        # Stack for local/temp memory (Activation Records)
-        # Each record is a dict or object containing local and temp memory
         self.memory_stack = []
         self.current_local_memory = {}
         self.current_temp_memory = {}
         
-        # Pending memory for function calls (created by ERA, used by PARAM, pushed by GOSUB)
         self.pending_activation_record = None
         
-        # Return address stack for GOSUB
         self.return_stack = []
 
     def load_quadruples(self, quadruples):
@@ -159,29 +154,8 @@ class VirtualMachine:
                     
                 elif op == 'PARAM':
                     val = self.get_value(left)
-                    # We need to know where to put it in the pending record
-                    # 'res' contains "param1", "param2", etc.
-                    # In a real implementation, we would map param position to address
-                    # For simplicity, let's assume params are mapped to the first local addresses
-                    # Or we can just store them in a list and pop them?
-                    # The compiler assigns addresses to params.
-                    # But here 'res' is just a string "paramX".
-                    # We need the target address.
-                    # The compiler should have generated 'PARAM src_addr _ target_addr'
-                    # But in my parser I generated 'PARAM arg_addr _ "paramX"'
-                    # This is a gap. I need to know the address of the parameter in the called function.
-                    # But I don't know which function is being called here easily (ERA was before).
-                    # Let's assume for this simplified VM that we just push params to a list
-                    # and the called function pops them into its local memory?
-                    # OR, better: The compiler should resolve the address.
-                    # Since I didn't implement that fully, I will hack it:
-                    # I will assume params are stored in order in the new local memory starting at LOCAL_BASE.
-                    
                     param_index = int(res.replace('param', '')) - 1
-                    # Assuming int params for now, or mixed.
-                    # This is tricky without type info.
-                    # Let's just use a simple offset for now.
-                    target_addr = 3000 + param_index # Very hacky!
+                    target_addr = 3000 + param_index
                     
                     self.pending_activation_record['local'][target_addr] = val
                     self.instruction_pointer += 1
@@ -196,25 +170,15 @@ class VirtualMachine:
                     self.current_temp_memory = self.pending_activation_record['temp']
                     self.pending_activation_record = None
                     
-                    # Jump
-                    # 'left' is func_name. VM needs a lookup table.
-                    # For now, I'll assume 'left' IS the address (if I fixed the parser)
-                    # OR I need a function directory in VM.
-                    # Let's assume the parser puts the address in 'left' or I pass a directory to VM.
-                    # I'll add a method to register functions.
                     func_name = left
-                    # self.instruction_pointer = self.function_directory[func_name]
-                    # For this implementation, I'll assume 'left' is the start address (int)
-                    # If it's a string, I'll fail unless I add the directory.
-                    self.instruction_pointer = int(left) # Expecting address
+
+                    self.instruction_pointer = int(left)
                     
                 elif op == 'ENDFUNC':
-                    # Restore state
                     prev_local, prev_temp = self.memory_stack.pop()
                     self.current_local_memory = prev_local
                     self.current_temp_memory = prev_temp
                     
-                    # Return
                     ret_addr = self.return_stack.pop()
                     self.instruction_pointer = ret_addr
                     
