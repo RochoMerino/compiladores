@@ -14,9 +14,6 @@ Donde:
 
 '''
 
-
-
-
 class VariableInfo:
 
     def __init__(self, name, var_type, scope, line, address=None):
