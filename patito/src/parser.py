@@ -1,153 +1,168 @@
-'''
-PatitoParser es el analizador sintactico
-
-toma los tokens que dejo el lexer y verifica que sigan las reglas gramaticales del lenguaje
-en el orden correcto
-
-aqui es donde sucede la magia de la generacion de cuadruplos. PatitoParser tiene "puntos neuralgicos"
-cuando detecta una operacion completa (a+b) llama a las rutinas para generar los cuadruplos inmediatamente
-
-PatitoParser cordina a todos los demas componentes 
-'''
-
-
 import ply.yacc as yacc
 from lexer import PatitoLexer
-
 from semantic_analyzer import SemanticAnalyzer
 from quadruple_generator import QuadrupleGenerator
-from temp_manager import TempManager
-
-
-
 
 class PatitoParser:
     def __init__(self):
+        # Constuir el lexer
         self.lexer = PatitoLexer()
         self.lexer.build()
         self.tokens = self.lexer.tokens
-        self.parser = yacc.yacc(module=self, debug=False)
+
+        # Construir el parser, debug=True para ver la tabla de producciones
+        self.parser = yacc.yacc(module=self, debug=True)
+
+        # Declarar arreglo de errores
         self.errors = []
+
+        # Construir el analizador semantico
         self.semantic = SemanticAnalyzer()
 
-        # Quadruple generation components
+        # Construir el generador de cuadruplos
         self.quad_gen = QuadrupleGenerator()
-        self.temp_mgr = TempManager()
+
+        # Declarar pila de operandos
         self.operand_stack = []
-        # self.operator_stack removed as it was unused
+        
+        # Declarar la pila de tipos
         self.type_stack = []
-        self.jump_stack = [] # Using a simple list as stack
+
+        # Declarar la pila de saltos
+        self.jump_stack = []
 
     def p_programa(self, p):
         '''programa : PROGRAM ID SEMICOLON program_start vars funcs MAIN LPAREN RPAREN main_start body END'''
         self.semantic.set_program_name(p[2], p.lineno(2))
+        # Declaramos el nombre del programa
         p[0] = ('program', p[2])
 
     def p_program_start(self, p):
         '''program_start :'''
-        # Generate GOTO main (pending)
-        self.main_jump = self.quad_gen.generate('GOTO', None, None, None)
+        # Rellenar GOTO MAIN nuestro salto de inicio
+        self.main_jump = self.quad_gen.generate('GOTO', 'MAIN', None, None)
 
     def p_main_start(self, p):
         '''main_start :'''
-        # Fill GOTO main
+        # Regresa al cuadruplo del inicio para rellenar el salto porque ya sabemos donde empieza el programa
         self.quad_gen.fill_quad(self.main_jump, self.quad_gen.get_next_address())
 
     def p_vars(self, p):
         '''vars : VAR var_decl_list
                 | empty'''
+        # Puede que haya una seecion que empieze con var y tenga declaraciones, o puede que no tenga nada
         p[0] = p[2] if len(p) == 3 else []
 
     def p_var_decl_list(self, p):
         '''var_decl_list : var_decl var_decl_list
                          | var_decl'''
+        # Si tienes var_decl var_decl_list entonces es una lista de declaraciones                 
         if len(p) == 3:
             p[0] = [p[1]] + p[2]
+        # Si solo tienes var_decl entonces es una declaracion nadamas
         else:
             p[0] = [p[1]]
 
     def p_var_decl(self, p):
         '''var_decl : id_list COLON type SEMICOLON'''
+        # Tipo de la variable
         var_type = p[3]
+        # ID de la variable
         id_list = p[1]
-
+        # Por ID declaramos la variable con su nombre, tipo y linea
         for var_name in id_list:
             self.semantic.declare_variable(var_name, var_type, p.lineno(2))
-
+        # Devolvemos la declaracion de la variable
         p[0] = ('var_decl', p[1], p[3])
 
     def p_id_list(self, p):
         '''id_list : ID COMMA id_list
                    | ID'''
+        # Si tienes ID COMMA id_list entonces es una lista de IDs
         if len(p) == 4:
             p[0] = [p[1]] + p[3]
+        # Si solo tienes ID entonces es un ID
         else:
             p[0] = [p[1]]
 
     def p_type(self, p):
         '''type : INT
                 | FLOAT'''
+        # Tipo de dato INT o FLOAT
         p[0] = p[1]
 
     def p_funcs(self, p):
         '''funcs : func funcs
                  | empty'''
+        # Si tienes func funcs entonces es una lista de funciones
         if len(p) == 3 and p[1]:
             p[0] = [p[1]] + p[2]
+        # Si solo tienes func entonces es una funcion
         else:
             p[0] = []
 
     def p_func_start(self, p):
         '''func_start : VOID ID LPAREN
                       | type ID LPAREN'''
+        # Tipo de la funcion
         func_type = p[1]
+        # Nombre de la funcion
         func_name = p[2]
+        # Declaramos la funcion con su nombre, tipo y linea
         self.semantic.declare_function(func_name, func_type, p.lineno(2))
-        # enter_function is now called inside declare_function (or should be?)
-        # Wait, I removed enter_function in semantic analyzer and moved logic to declare_function.
-        # But I need to check if I removed it from parser call.
-        # In my previous edit to semantic analyzer, I merged them.
-        # So I don't need to call enter_function here.
+        
+        # "Devolvemos" nombre de la funcion
         p[0] = func_name
 
     def p_func_with_start(self, p):
         '''func : func_start params RPAREN LBRACKET vars func_code_start body RBRACKET SEMICOLON'''
+        # Generamos el cuadruplo de ENDFUNC
         self.quad_gen.generate('ENDFUNC', None, None, None)
+        # Sakimos de la funcion
         self.semantic.exit_function()
+        # "Devolvemos" la 'funcion' con p1 que es func_start y p2 que es params
         p[0] = ('function', p[1], p[2])
 
     def p_func_code_start(self, p):
         '''func_code_start :'''
+        # Marcamos donde empieza el codigo ejecutable de la funcion
         self.semantic.set_start_quad(self.quad_gen.get_next_address())
 
     def p_params(self, p):
         '''params : param_list
                   | empty'''
+        # Si tienes param_list entonces lista de parametros, si no entonces no hay nada
         p[0] = p[1] if p[1] else []
 
     def p_param_list(self, p):
         '''param_list : ID COLON type COMMA param_list
                       | ID COLON type'''
+        # Nombre del parametro
         param_name = p[1]
+        # Tipo del parametro
         param_type = p[3]
-
+        # Agregamos parametro con su nombre, su tipo y su linea
         self.semantic.add_parameter(param_name, param_type, p.lineno(1))
 
+        # Si tienes hasta param_list entonces es una lista de parametros
         if len(p) == 6:
             p[0] = [(p[1], p[3])] + p[5]
+        # Si no tienes hasta param_list entonces es un parametro
         else:
             p[0] = [(p[1], p[3])]
 
     def p_body(self, p):
         '''body : LBRACE statement_list RBRACE'''
+        # "Devolvemos" el cuerpo con p2 statement_list
         p[0] = ('body', p[2])
 
     def p_statement_list(self, p):
         '''statement_list : statement statement_list
                           | empty'''
-        # print(f"DEBUG: statement_list len={len(p)}")
+        # Si tienes hasta statement_list entonces es una lista de statements 
         if len(p) == 3 and p[1]:
             p[0] = [p[1]] + (p[2] if p[2] else [])
+        # Si no tienes statement_list entonces esta vacia
         else:
             p[0] = []
 
@@ -158,55 +173,67 @@ class PatitoParser:
                      | f_call SEMICOLON
                      | print
                      | return_stmt'''
-        # print(f"DEBUG: p_statement matched {p[1]}")
+        # "Devolvemos" lo que sea en p1 jajajaj
         p[0] = p[1]
 
     def p_return_stmt(self, p):
         '''return_stmt : RETURN expression SEMICOLON'''
-        # Validate return type and get global address
+        # Tipo de la expresion
         expr_type = self._get_expr_type(p[2])
+        # Validamos el tipo de la expresion
         return_addr = self.semantic.validate_return(expr_type, p.lineno(1))
-        
-        # Generate assignment to global return address
+        # Operand resultante
         result_operand = self.operand_stack.pop()
+        # Generamos el cuadruplo 
         self.quad_gen.generate('=', result_operand, None, return_addr)
-        
-        # Generate ENDFUNC (or RET)
+        # Generamos el cuadruplo de ENDFUNC
         self.quad_gen.generate('ENDFUNC', None, None, None)
-        
+        # "Devolvemos" el return con p2 que es expression
         p[0] = ('return', p[2])
 
     def p_assign(self, p):
         '''assign : ID EQ expression SEMICOLON'''
+        # var name es ID
         var_name = p[1]
+        # expr_info es expression
         expr_info = p[3]
+        # Tipo de la expresion
         expr_type = self._get_expr_type(expr_info)
+        # Checamos la asignacion con la funcion check_assignment de semantic analyzer
         self.semantic.check_assignment(var_name, expr_type, p.lineno(1))
 
-        # PN_ASSIGNMENT: Generate assignment quadruple
+        # result_operand es el resultado de la expresion
         result_operand = self.operand_stack.pop()
+        # var_address es la direccion de la variable
         var_address = self.semantic.get_variable_address(var_name, p.lineno(1))
+        # Generamos el cuadruplo de asignacion
         self.quad_gen.generate('=', result_operand, None, var_address)
 
+        # "Devolvemos" el assign con p1 que es ID y p3 que es expression
         p[0] = ('assign', p[1], p[3])
 
     def p_condition(self, p):
         '''condition : IF LPAREN expression RPAREN if_test body if_end
                      | IF LPAREN expression RPAREN if_test body ELSE else_start body if_end'''
+        # "Devolvemos" if expression
         p[0] = ('if', p[3])
 
     def p_if_test(self, p):
         '''if_test :'''
-        # Generate GOTOF
+        # Tipo de la condicion
         condition_type = self.type_stack.pop()
+        # Resultado de la condicion
         result = self.operand_stack.pop()
+        # Generamos el cuadruplo de GOTOF
         quad_idx = self.quad_gen.generate('GOTOF', result, None, None)
+        # Guardamos nuestra semillita de salto porque aun no sabemos a donde tenemos que saltar
         self.jump_stack.append(quad_idx)
 
     def p_if_end(self, p):
         '''if_end :'''
-        # Fill GOTOF
+        # Sacamos el valor de nuestro jump stack
         end = self.jump_stack.pop()
+        # Regresamos a rellenar el GOTOF con el siguiente address
         self.quad_gen.fill_quad(end, self.quad_gen.get_next_address())
 
     def p_else_start(self, p):
@@ -381,20 +408,17 @@ class PatitoParser:
                   | cte
                   | ID'''
         if len(p) == 2 and isinstance(p[1], tuple) and p[1][0] == 'call':
-             # Function call result is already on stack (handled in f_call)
              p[0] = p[1]
              return
         elif len(p) == 4:
-            # Parenthesized expression - operand already on stack
             p[0] = p[2]
         elif len(p) == 3:
             factor_type = self._get_expr_type(p[2])
             if p[1] == '-':
-                # Unary minus - generate quadruple
                 operand = self.operand_stack.pop()
                 self.type_stack.pop()
 
-                temp = self.temp_mgr.generate()
+                temp = self.semantic.get_temp_address(factor_type)
                 self.quad_gen.generate('unary-', operand, None, temp)
 
                 self.operand_stack.append(temp)
@@ -402,19 +426,15 @@ class PatitoParser:
 
                 p[0] = ('type_info', factor_type, ('unary', p[1], p[2]))
             else:
-                # Unary plus - no operation needed
                 p[0] = p[2]
         else:
-            # ID or constant - already handled in p_cte and below
             if isinstance(p[1], str) and not p[1].replace('.', '').replace('-', '').replace('+', '').isdigit():
-                # PN_PUSH_OPERAND: Variable reference
                 var_type = self.semantic.lookup_variable(p[1], p.lineno(1))
                 address = self.semantic.get_variable_address(p[1], p.lineno(1))
                 self.operand_stack.append(address)
                 self.type_stack.append(var_type)
                 p[0] = ('type_info', var_type, ('id', p[1]))
             else:
-                # Constant - handled in p_cte
                 p[0] = p[1]
 
     def p_cte(self, p):
@@ -426,7 +446,6 @@ class PatitoParser:
         else:
             const_type = 'int'
 
-        # PN_PUSH_OPERAND: Constant
         address = self.semantic.get_const_address(const_type, value)
         self.operand_stack.append(address)
         self.type_stack.append(const_type)
@@ -446,16 +465,8 @@ class PatitoParser:
 
         self.semantic.validate_function_call(func_name, arg_types, p.lineno(1))
 
-        # PN_CALL: Generate ERA, PARAMs, GOSUB
         self.quad_gen.generate('ERA', func_name, None, None)
-        
-        # Generate PARAM for each argument
-        # Arguments are on the operand stack (addresses)
-        # We need to pop them in reverse order (stack is LIFO)
-        # But wait, p[3] (arg_expressions) has the list of expressions
-        # And the operands are on the stack in the order they were evaluated
-        # If we evaluate (a, b, c), stack has [addr_a, addr_b, addr_c] (top is c)
-        
+
         num_args = len(arg_types)
         argument_addresses = []
         for _ in range(num_args):
@@ -463,75 +474,22 @@ class PatitoParser:
             self.type_stack.pop()
             
         for i, arg_addr in enumerate(argument_addresses):
-            # param_name = f"param{i+1}" # Or get actual param name from directory if needed
             self.quad_gen.generate('PARAM', arg_addr, None, f"param{i+1}")
-            
-        # Get function start address (we need to lookup function info)
-        # We don't have direct access to function info here via semantic analyzer easily without a new method
-        # But GOSUB usually takes the function name or address. 
-        # If we use name, the VM will look it up. If we use address, we need to resolve it now.
-        # Let's use name for now, or add get_function_start_quad to semantic.
-        # The VM usually handles 'GOSUB func_name' by looking up the IP.
-        # Or we can resolve it here if we want.
-        # Let's use the function name in the quad and let VM resolve, OR resolve it now.
-        # Resolving now is better for "compilation".
-        
-        # Let's add get_function_start_quad to semantic analyzer
-        # For now, I'll put the name and let the VM or a linker resolve it. 
-        # Actually, since we are compiling to "quadruples" which is IR, names are fine if VM supports it.
-        # But the user asked for "addresses".
-        # Let's try to get the start quad.
-        
-        # self.quad_gen.generate('GOSUB', func_name, None, None) 
-        
-        # Wait, if I use start_quad, I need to know it. If the function is defined AFTER, I can't know it yet.
-        # So I need to fill it later? Or does Patito require declaration before use?
-        # The grammar allows functions anywhere?
-        # "funcs" are before "MAIN". So functions are defined before main.
-        # But functions can call each other?
-        # If recursion or forward reference is allowed, we need backpatching or name-based lookup.
-        # Given the grammar structure, functions are defined before main.
-        # If a function calls another function defined later, we have a problem if we need address immediately.
-        # Let's assume we can use the function name in GOSUB and the VM handles the lookup table.
-        # OR, we can use a "Function Address" which is just the index in the directory?
-        
-        # Let's stick to using the function name in GOSUB for simplicity in this step, 
-        # as implementing a full linker/backpatcher for functions might be overkill if not requested.
-        # But wait, the user said "instead of names... use memory addresses".
-        # This applies to variables. For functions, jumping to a quad index is standard.
         
         start_quad = self.semantic.get_function_start_quad(func_name)
         if start_quad is None:
-            # If function is not defined yet (recursion or forward ref), we have a problem.
-            # For now, let's assume it is defined.
-            # Or we can leave it as name and let VM handle it if we passed directory.
-            # But I want to be "compiled".
-            # Let's use a placeholder and fill it later? No, complex.
-            # Let's assume definition before use.
             pass
             
         self.quad_gen.generate('GOSUB', start_quad, None, None)
 
-        # Handle return value if function is non-void
         return_addr = self.semantic.get_function_return_address(func_name)
         if return_addr is not None:
-            # Assign return value to a temporary
-            # We need to know the return type to allocate a temp
-            # Semantic analyzer should provide it, or we can look it up
-            # Let's assume we can get the type from the return address?
-            # Or better, ask semantic for the type.
-            # But wait, get_function_return_address only gives address.
-            # Let's just use the address type if we can infer it, or ask semantic.
-            # Actually, we can just ask for a temp of the return type.
-            
-            # We need the return type.
             func_info = self.semantic.function_directory.get_function(func_name)
             return_type = func_info.return_type
             
             temp_addr = self.semantic.get_temp_address(return_type)
             self.quad_gen.generate('=', return_addr, None, temp_addr)
             
-            # Push temp to operand stack
             self.operand_stack.append(temp_addr)
             self.type_stack.append(return_type)
 
@@ -583,7 +541,7 @@ class PatitoParser:
 
         # Reset quadruple generation structures
         self.quad_gen.clear()
-        self.temp_mgr.reset()
+
         self.operand_stack.clear()
         # self.operator_stack.clear() removed
         self.type_stack.clear()
