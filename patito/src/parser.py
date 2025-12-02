@@ -238,61 +238,64 @@ class PatitoParser:
 
     def p_else_start(self, p):
         '''else_start :'''
-        # Generate GOTO (to skip else) and fill GOTOF
+        # Sacamos el valor de nuestro jump stack
         false_jump = self.jump_stack.pop()
-        
-        # GOTO end of else
+        # Generamos el cuadruplo de GOTO
         goto_idx = self.quad_gen.generate('GOTO', None, None, None)
+        # Guardamos nuestra semilla para rellenar el GOTO
         self.jump_stack.append(goto_idx)
-        
-        # Fill GOTOF to go here (start of else)
+        # Regresamos a rellenar el GOTOF con el siguiente address
         self.quad_gen.fill_quad(false_jump, self.quad_gen.get_next_address())
 
     def p_cycle(self, p):
         '''cycle : WHILE while_start LPAREN expression RPAREN while_test DO body while_end'''
+        # "Devolvemos" while expression
         p[0] = ('while', p[4])
 
     def p_while_start(self, p):
         '''while_start :'''
-        # PN_WHILE_1: Save start address to jump back
+        # Guardamos nuestra semilla en la pila de saltos para poder regresar cuando termine el while
         self.jump_stack.append(self.quad_gen.get_next_address())
 
     def p_while_test(self, p):
         '''while_test :'''
-        # PN_WHILE_2: Generate GOTOF
+        # Tipo de la condicion
         condition_type = self.type_stack.pop()
+        # Resultado de la condicion
         result = self.operand_stack.pop()
+        # Generamos cuadruplo de GOTOF
         quad_idx = self.quad_gen.generate('GOTOF', result, None, None)
+        # Guardamos nuestra semilla en la pila de saltos para poder regresar
         self.jump_stack.append(quad_idx)
 
     def p_while_end(self, p):
         '''while_end :'''
-        # PN_WHILE_3: Generate GOTO back and fill GOTOF
+        # Sacamos el false jump de la pila de saltos
         false_jump = self.jump_stack.pop()
+        # Sacamos el start address de la pila de saltos
         start_addr = self.jump_stack.pop()
-        
+        # Generamos el cuadruplo de goto para regresar al while
         self.quad_gen.generate('GOTO', None, None, start_addr)
+        # Rellenamos el GOTOF con el siguiente address para saber que pasa si no se cumple la condicion
         self.quad_gen.fill_quad(false_jump, self.quad_gen.get_next_address())
 
     def p_print(self, p):
         '''print : PRINT LPAREN print_list RPAREN SEMICOLON'''
-        # PN_PRINT: Generate PRINT quadruples for each item
-        # Items are processed in reverse order from the stack
+        # Guardamos la lista de items para imprimir
         print_items = p[3]
+        # Contamos el numero de expresiones
         num_expressions = sum(1 for item in print_items if not (isinstance(item, tuple) and item[0] == 'string_literal'))
-
-        # Pop operands in reverse order
+        # Creamos una lista para los operands
         operands = []
+        # Dependiendo del numero de expresiones, agregamos los operands a la lista
         for _ in range(num_expressions):
             operands.insert(0, self.operand_stack.pop())
 
         operand_idx = 0
         for item in print_items:
             if isinstance(item, tuple) and item[0] == 'string_literal':
-                # String literal - print directly
                 self.quad_gen.generate('PRINT', item[1], None, None)
             else:
-                # Expression result
                 self.quad_gen.generate('PRINT', operands[operand_idx], None, None)
                 operand_idx += 1
 
@@ -301,24 +304,29 @@ class PatitoParser:
     def p_print_list(self, p):
         '''print_list : print_item COMMA print_list
                       | print_item'''
+        # Si tienes print_list entonces es una lista de items
         if len(p) == 4:
             p[0] = [p[1]] + p[3]
+        # Si no tienes un print_list entonces es un item
         else:
             p[0] = [p[1]]
 
     def p_print_item(self, p):
         '''print_item : expression
                       | CTE_STRING'''
-        # CTE_STRING is identified by the grammar rule itself
+        # Si tienes CTE_STRING entonces es una string constant
         if len(p) == 2 and self._is_from_rule(p.slice[1].type, 'CTE_STRING'):
-            # String constant
+            # Obtenemos la direccion de la string constant
             address = self.semantic.get_const_address('string', p[1])
+            # "Devolvemos" la string constant con p1 que es CTE_STRING
             p[0] = ('string_literal', address)
+        # "Devolvemos" el expresion
         else:
             p[0] = p[1]
 
     def _is_from_rule(self, token_type, expected_type):
         """Check if a token is of the expected type."""
+        # Si el token es del tipo esperado entonces es verdadero
         return token_type == expected_type
 
     def p_expression(self, p):
@@ -326,78 +334,112 @@ class PatitoParser:
                       | exp GT exp
                       | exp LT exp
                       | exp NEQ exp'''
+        # "Devolvemos" la expresion con p1 que es exp
         if len(p) == 2:
             p[0] = p[1]
+        # Si no tienes una expresion
         else:
+            # Tipo de la izquierda
             left_type = self._get_expr_type(p[1])
+            # Tipo de la derecha
             right_type = self._get_expr_type(p[3])
+            # Operador
             operator = p[2]
+            # Checamos si la operacion es valida
             result_type = self.semantic.check_operation(left_type, operator, right_type, p.lineno(2))
 
-            # PN_RELATIONAL: Generate quadruple for relational operators
+            # Operand derecho
             right_operand = self.operand_stack.pop()
+            # Operando izquierdo
             left_operand = self.operand_stack.pop()
+            # Sacamos los tipos de la pila de tipos
             self.type_stack.pop()
             self.type_stack.pop()
 
+            # Direccion temporal para el resultado de la operacion
             temp = self.semantic.get_temp_address(result_type)
+            # Generamos el cuadruplo de la operacion
             self.quad_gen.generate(operator, left_operand, right_operand, temp)
-
+            # Agregamos el resultado de la operacion a la pila de operands
             self.operand_stack.append(temp)
+            # Agregamos el tipo de resultado a la pila de tipos
             self.type_stack.append(result_type)
-
+            # "Devolvemos" el tipo de resultado, con el operador, con el operand izquierdo y el operand derecho
             p[0] = ('type_info', result_type, (operator, p[1], p[3]))
 
     def p_exp(self, p):
         '''exp : termino
                | exp PLUS termino
                | exp MINUS termino'''
+        # Si es termino entonces "devolvemos" el termino con p1 
         if len(p) == 2:
             p[0] = p[1]
         else:
+            # Tipo de la izquierda
             left_type = self._get_expr_type(p[1])
+            # Tipo de la derecha
             right_type = self._get_expr_type(p[3])
+            # Operador
             operator = p[2]
+            # Checamos si la operacion es valida
             result_type = self.semantic.check_operation(left_type, operator, right_type, p.lineno(2))
 
-            # PN_OPERATION: Generate quadruple for +/-
+            # Operand derecho
             right_operand = self.operand_stack.pop()
+            # Operando izquierdo
             left_operand = self.operand_stack.pop()
+            # Sacamos los tipos de la pila de tipos
             self.type_stack.pop()
+            # Sacamos los tipos de la pila de tipos
             self.type_stack.pop()
 
+            # Direccion temporal para el resultado de la operacion
             temp = self.semantic.get_temp_address(result_type)
+            # Generamos el cuadruplo de la operacion
             self.quad_gen.generate(operator, left_operand, right_operand, temp)
-
+            # Agregamos el resultado a la pila de oerands
             self.operand_stack.append(temp)
+            # Agregamos el tipo de resultado a la pila de tipos
             self.type_stack.append(result_type)
 
+            # "Devolvemos" el tipo de resultado, con el operador, con el operand izquierdo y el operand derecho
             p[0] = ('type_info', result_type, (operator, p[1], p[3]))
 
     def p_termino(self, p):
         '''termino : factor
                    | termino MULT factor
                    | termino DIV factor'''
+        # Si es factor entonces "devolvemos" el factor con p1 
         if len(p) == 2:
             p[0] = p[1]
         else:
+            # Tipo de la izquierda
             left_type = self._get_expr_type(p[1])
+            # Tipo de la derecha
             right_type = self._get_expr_type(p[3])
+            # Operador
             operator = p[2]
+            # Checamos si la operacion es valida
             result_type = self.semantic.check_operation(left_type, operator, right_type, p.lineno(2))
 
-            # PN_OPERATION: Generate quadruple for *//
+            # Operand derecho
             right_operand = self.operand_stack.pop()
+            # Operando izquierdo
             left_operand = self.operand_stack.pop()
+            # Sacamos los tipos de la pila de tipos
             self.type_stack.pop()
+            # Sacamos los tipos de la pila de tipos
             self.type_stack.pop()
 
+            # Direccion temporal para el resultado de la operacion
             temp = self.semantic.get_temp_address(result_type)
+            # Generamos el cuadruplo de la operacion
             self.quad_gen.generate(operator, left_operand, right_operand, temp)
-
+            # Agregamos el resultado de la operacion a la pila de operands
             self.operand_stack.append(temp)
+            # Agregamos el tipo de resultado a la pila de tipos
             self.type_stack.append(result_type)
-
+            # Devolvemos el tipo de resultado, operador, op izquierdo y op derecho
             p[0] = ('type_info', result_type, (operator, p[1], p[3]))
 
     def p_factor(self, p):
