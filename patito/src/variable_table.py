@@ -15,22 +15,22 @@ Donde:
 '''
 
 
-from errors import RedefinitionError, UndefinedVariableError
 
 
 class VariableInfo:
 
-    def __init__(self, name, var_type, scope, line):
+    def __init__(self, name, var_type, scope, line, address=None):
         self.name = name
         self.var_type = var_type
         self.scope = scope
         self.line = line
+        self.address = address
 
     def __repr__(self):
-        return f"VariableInfo({self.name}, {self.var_type}, {self.scope}, line={self.line})"
+        return f"VariableInfo({self.name}, {self.var_type}, {self.scope}, line={self.line}, addr={self.address})"
 
     def __str__(self):
-        return f"{self.name}:{self.var_type} ({self.scope})"
+        return f"{self.name}:{self.var_type} ({self.scope}) @{self.address}"
 
 
 class VariableTable:
@@ -39,16 +39,12 @@ class VariableTable:
         self.scope_name = scope_name
         self.variables = {}
 
-    def add_variable(self, name, var_type, scope, line):
+    def add_variable(self, name, var_type, scope, line, address=None):
         if name in self.variables:
             existing = self.variables[name]
-            raise RedefinitionError(
-                f"Variable '{name}' ya fue declarada en linea {existing.line}",
-                line=line,
-                identifier=name
-            )
+            raise Exception(f"Error: Variable '{name}' ya fue declarada en linea {existing.line} (redefinicion en linea {line})")
 
-        var_info = VariableInfo(name, var_type, scope, line)
+        var_info = VariableInfo(name, var_type, scope, line, address)
         self.variables[name] = var_info
         return var_info
 
@@ -61,6 +57,10 @@ class VariableTable:
     def get_type(self, name):
         var_info = self.variables.get(name)
         return var_info.var_type if var_info else None
+    
+    def get_address(self, name):
+        var_info = self.variables.get(name)
+        return var_info.address if var_info else None
 
     def get_all_variables(self):
         return list(self.variables.values())
@@ -72,19 +72,19 @@ class VariableTable:
         self.variables.clear()
 
     def print_table(self):
-        print(f"\n{'='*60}")
+        print(f"\n{'='*70}")
         print(f"TABLA DE VARIABLES - Scope: {self.scope_name}")
-        print(f"{'='*60}")
+        print(f"{'='*70}")
 
         if not self.variables:
             print("  (vacia)")
         else:
-            print(f"{'Nombre':<15} {'Tipo':<10} {'Scope':<10} {'Linea':<10}")
-            print("-" * 60)
+            print(f"{'Nombre':<15} {'Tipo':<10} {'Scope':<10} {'Linea':<10} {'Direccion':<10}")
+            print("-" * 70)
             for var in self.variables.values():
-                print(f"{var.name:<15} {var.var_type:<10} {var.scope:<10} {var.line:<10}")
+                print(f"{var.name:<15} {var.var_type:<10} {var.scope:<10} {var.line:<10} {str(var.address):<10}")
 
-        print(f"{'='*60}\n")
+        print(f"{'='*70}\n")
 
     def __repr__(self):
         return f"VariableTable({self.scope_name}, {len(self.variables)} vars)"
@@ -108,18 +108,18 @@ class ScopedVariableTable:
         self.local_table = None
         self.current_scope = 'global'
 
-    def add_variable(self, name, var_type, line):
+    def add_variable(self, name, var_type, line, address=None):
         scope = self.current_scope
         table = self.local_table if self.local_table else self.global_table
         scope_type = 'local' if self.local_table else 'global'
 
-        return table.add_variable(name, var_type, scope_type, line)
+        return table.add_variable(name, var_type, scope_type, line, address)
 
-    def add_parameter(self, name, var_type, line):
+    def add_parameter(self, name, var_type, line, address=None):
         if not self.local_table:
             raise Exception("No se puede agregar parametro fuera de una funcion")
 
-        return self.local_table.add_variable(name, var_type, 'param', line)
+        return self.local_table.add_variable(name, var_type, 'param', line, address)
 
     def lookup(self, name, line=None):
         if self.local_table:
@@ -132,11 +132,7 @@ class ScopedVariableTable:
             return var_info
 
         if line is not None:
-            raise UndefinedVariableError(
-                f"Variable '{name}' no ha sido declarada",
-                line=line,
-                identifier=name
-            )
+            raise Exception(f"Error: Variable '{name}' no ha sido declarada en linea {line}")
 
         return None
 
@@ -175,5 +171,5 @@ if __name__ == '__main__':
 
     try:
         scoped.lookup('undefined', line=10)
-    except UndefinedVariableError as e:
+    except Exception as e:
         print(f"\nError capturado: {e}")

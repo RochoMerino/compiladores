@@ -70,6 +70,7 @@ class PatitoLexer:
         'else': 'ELSE',
         'while': 'WHILE',
         'do': 'DO',
+        'return': 'RETURN',
         'print': 'PRINT',
         'end': 'END',
     }
@@ -137,6 +138,7 @@ class PatitoLexer:
     def t_ID(self, t):
         r'[A-Za-z][A-Za-z0-9_]*'
         t.type = self.reserved.get(t.value.lower(), 'ID')
+        print(f"DEBUG: Lexer found ID/Keyword: {t.value} -> {t.type}")
         return t
     
     def t_COMMENT_LINE(self, t):

@@ -1,4 +1,4 @@
-from errors import RedefinitionError, UndefinedVariableError, TypeError as PatitoTypeError
+
 from variable_table import VariableTable
 
 
@@ -24,20 +24,19 @@ class FunctionInfo:
         self.params = []
         self.var_table = VariableTable(name)
         self.line = line
+        self.start_quad = None
+        self.return_address = None
+        self.resource_needs = {} # To store memory usage info
 
-    def add_parameter(self, name, param_type, line):
+    def add_parameter(self, name, param_type, line, address=None):
         if any(p.name == name for p in self.params):
-            raise RedefinitionError(
-                f"Parametro '{name}' ya fue declarado en la funcion '{self.name}'",
-                line=line,
-                identifier=name
-            )
+            raise Exception(f"Error: Parametro '{name}' ya fue declarado en la funcion '{self.name}' en linea {line}")
 
         position = len(self.params)
         param_info = ParameterInfo(name, param_type, position)
         self.params.append(param_info)
 
-        self.var_table.add_variable(name, param_type, 'param', line)
+        self.var_table.add_variable(name, param_type, 'param', line, address)
 
     def get_param_count(self):
         return len(self.params)
@@ -50,19 +49,11 @@ class FunctionInfo:
         actual_count = len(arg_types)
 
         if actual_count != expected_count:
-            raise PatitoTypeError(
-                f"Funcion '{self.name}' espera {expected_count} argumentos, "
-                f"pero se pasaron {actual_count}",
-                line=line
-            )
+            raise Exception(f"Error: Funcion '{self.name}' espera {expected_count} argumentos, pero se pasaron {actual_count} en linea {line}")
 
         for i, (param, arg_type) in enumerate(zip(self.params, arg_types)):
             if param.param_type != arg_type:
-                raise PatitoTypeError(
-                    f"Argumento {i+1} de funcion '{self.name}': "
-                    f"se esperaba tipo '{param.param_type}', pero se recibio '{arg_type}'",
-                    line=line
-                )
+                raise Exception(f"Error: Argumento {i+1} de funcion '{self.name}': se esperaba tipo '{param.param_type}', pero se recibio '{arg_type}' en linea {line}")
 
     def __repr__(self):
         params_str = ', '.join(str(p) for p in self.params)
@@ -82,18 +73,10 @@ class FunctionDirectory:
     def add_function(self, name, return_type, line):
         if name in self.functions:
             existing = self.functions[name]
-            raise RedefinitionError(
-                f"Funcion '{name}' ya fue declarada en linea {existing.line}",
-                line=line,
-                identifier=name
-            )
+            raise Exception(f"Error: Funcion '{name}' ya fue declarada en linea {existing.line} (redefinicion en linea {line})")
 
         if name == 'main':
-            raise RedefinitionError(
-                f"No se puede declarar funcion con nombre 'main' (reservada)",
-                line=line,
-                identifier=name
-            )
+            raise Exception(f"Error: No se puede declarar funcion con nombre 'main' (reservada) en linea {line}")
 
         func_info = FunctionInfo(name, return_type, line)
         self.functions[name] = func_info
@@ -110,11 +93,19 @@ class FunctionDirectory:
     def end_function(self):
         self.current_function = None
 
-    def add_parameter(self, param_name, param_type, line):
+    def set_start_quad(self, quad_idx):
+        if self.current_function:
+            self.current_function.start_quad = quad_idx
+
+    def set_return_address(self, address):
+        if self.current_function:
+            self.current_function.return_address = address
+
+    def add_parameter(self, param_name, param_type, line, address=None):
         if not self.current_function:
             raise Exception("No hay funcion activa para agregar parametros")
 
-        self.current_function.add_parameter(param_name, param_type, line)
+        self.current_function.add_parameter(param_name, param_type, line, address)
 
     def get_function(self, name):
         return self.functions.get(name)
@@ -124,11 +115,7 @@ class FunctionDirectory:
 
     def validate_call(self, func_name, arg_types, line):
         if not self.function_exists(func_name):
-            raise UndefinedVariableError(
-                f"Funcion '{func_name}' no ha sido declarada",
-                line=line,
-                identifier=func_name
-            )
+            raise Exception(f"Error: Funcion '{func_name}' no ha sido declarada en linea {line}")
 
         func_info = self.get_function(func_name)
         func_info.validate_call(arg_types, line)
