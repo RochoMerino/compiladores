@@ -29,11 +29,11 @@ int fact(n: int) {
 };
 
 main() {
-    x = 5;
+    x = 10;
     res = fact(x);
     print("Factorial of", x, "is", res);
     
-    x = 6;
+    x = 10;
     print("Factorial of", x, "is", fact(x));
 }
 end
