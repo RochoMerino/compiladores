@@ -1,0 +1,75 @@
+// Example Patito Program - Calculator
+// This program demonstrates all major features of Patito language
+
+program calculator;
+
+// Variable declarations
+var a, b, c : int;
+    result : float;
+    counter : int;
+
+// Function to calculate sum
+void calculateSum(x : int, y : int) [
+    var temp : int;
+{
+    temp = x + y;
+    print("The sum is:", temp);
+}
+];
+
+// Function to calculate product
+void calculateProduct(x : int, y : int) [
+    var product : int;
+{
+    product = x * y;
+    print("The product is:", product);
+}
+];
+
+// Main program
+main() {
+    // Initialize variables
+    a = 10;
+    b = 5;
+    c = 2;
+    counter = 0;
+    
+    // Basic arithmetic
+    result = a + b * c;
+    print("Result of 10 + 5 * 2 =", result);
+    
+    // Conditional statement
+    if (result > 15) {
+        print("Result is greater than 15");
+        result = result - 5.0;
+    } else {
+        print("Result is 15 or less");
+        result = result + 5.0;
+    };
+    
+    // While loop
+    while (counter < 5) do {
+        print("Counter:", counter);
+        counter = counter + 1;
+    };
+    
+    // Function calls
+    calculateSum(a, b);
+    calculateProduct(a, b);
+    
+    // Complex expression
+    c = (a + b) * (c - 1);
+    
+    // Comparison operations
+    if (a > b) {
+        print("a is greater than b");
+    };
+    
+    if (a != b) {
+        print("a is not equal to b");
+    };
+    
+    print("Program completed!");
+}
+end
+

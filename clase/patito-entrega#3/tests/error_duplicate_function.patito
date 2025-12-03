@@ -1,0 +1,20 @@
+// ERROR SEMÁNTICO: Función doblemente declarada
+// Esperado: RedefinitionError en línea 11
+
+program test;
+
+void myFunc() [
+{
+    print("First");
+}
+];
+
+void myFunc() [  // ERROR: 'myFunc' ya fue declarada
+{
+    print("Second");
+}
+];
+
+main() {
+}
+end

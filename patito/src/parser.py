@@ -13,7 +13,7 @@ class PatitoParser:
         self.tokens = self.lexer.tokens
 
         # Construir el parser, debug=True para ver la tabla de producciones
-        self.parser = yacc.yacc(module=self, debug=True)
+        self.parser = yacc.yacc(module=self, debug=False)
 
         # Declarar arreglo de errores
         self.errors = []

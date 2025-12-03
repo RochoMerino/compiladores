@@ -1,0 +1,9 @@
+// ERROR SEMÁNTICO: Función no declarada
+// Esperado: UndefinedVariableError en línea 6
+
+program test;
+
+main() {
+    undefinedFunc();  // ERROR: función no declarada
+}
+end

@@ -1,0 +1,15 @@
+// ERROR SEMÁNTICO: Número incorrecto de argumentos
+// Esperado: TypeError en línea 11
+
+program test;
+
+void myFunc(x : int) [
+{
+    print(x);
+}
+];
+
+main() {
+    myFunc(10, 20);  // ERROR: se esperaba 1 argumento, se pasaron 2
+}
+end

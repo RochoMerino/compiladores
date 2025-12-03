@@ -23,8 +23,7 @@ int fact(n: int) {
         if (n < 2) {
             return 1;
         } else {
-            ans = n * fact(n - 1);
-            return ans;
+            return n * fact(n - 1);
         }
     }
 };
