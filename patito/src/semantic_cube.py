@@ -85,24 +85,3 @@ semantic_cube = SemanticCube()
 def check_operation(left_type, operator, right_type):
     return semantic_cube.get_result_type(left_type, operator, right_type)
 
-
-if __name__ == '__main__':
-    cube = SemanticCube()
-    cube.print_cube()
-
-    print("\nEJEMPLOS DE USO:")
-    print("-" * 50)
-
-    test_cases = [
-        ('int', '+', 'int'),
-        ('int', '+', 'float'),
-        ('float', '/', 'int'),
-        ('int', '>', 'float'),
-        ('float', '=', 'int'),
-        ('int', '=', 'float'),
-    ]
-
-    for left, op, right in test_cases:
-        result = cube.get_result_type(left, op, right)
-        status = "VALIDO" if result else "INVALIDO"
-        print(f"{status:12} | {left:6} {op:2} {right:6} -> {result if result else 'ERROR'}")

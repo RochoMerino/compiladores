@@ -1,0 +1,81 @@
+import sys
+import os
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+src_path = os.path.join(os.path.dirname(current_dir), 'src')
+sys.path.append(src_path)
+
+from parser import PatitoParser
+from virtual_machine import VirtualMachine
+
+def test_compiler():
+    print("="*60)
+    print("TEST: COMPILER & VIRTUAL MACHINE")
+    print("="*60)
+    
+    codigo = """
+program fibonacci;
+var n : int;
+
+void fibIterative(limit: int) {
+    var a, b, temp, i : int;
+    {
+        a = 0;
+        b = 1;
+        print("Fibonacci iterative (first ", limit, " numbers):");
+        if (limit > 0) {
+            print(a);
+        }
+        if (limit > 1) {
+            print(b);
+        }
+        i = 2;
+        while (i < limit) do {
+            temp = a + b;
+            print(temp);
+            a = b;
+            b = temp;
+            i = i + 1;
+        }
+    }
+};
+
+main() {
+    n = 10;
+    fibIterative(n);
+}
+end
+    """
+    
+    print("CODIGO:")
+    print(codigo)
+    print("-" * 60)
+    
+    print("\n1. COMPILANDO...")
+    parser = PatitoParser()
+    try:
+        parser.parse(codigo)
+        print("Compilacion Exitosa!")
+        
+        quads = parser.get_quadruples()
+        print(f"Generados {len(quads)} cuadruplos.")
+        parser.print_quadruples()
+        
+    except Exception as e:
+        print(f"Error de Compilacion: {e}")
+        import traceback
+        traceback.print_exc()
+        return
+
+    print("\n2. EJECUTANDO EN MAQUINA VIRTUAL...")
+    vm = VirtualMachine()
+    vm.load_quadruples(quads)
+    
+    constants = parser.semantic.memory_manager.get_constants()
+    print(f"Cargando {len(constants)} constantes.")
+    vm.set_constants(constants)
+    
+    vm.execute()
+
+if __name__ == "__main__":
+    test_compiler()

@@ -1,5 +1,10 @@
 Created by PLY version 3.11 (http://www.dabeaz.com/ply)
 
+Unused terminals:
+
+    LBRACKET
+    RBRACKET
+
 Grammar
 
 Rule 0     S' -> programa
@@ -19,7 +24,7 @@ Rule 13    funcs -> func funcs
 Rule 14    funcs -> empty
 Rule 15    func_start -> VOID ID LPAREN
 Rule 16    func_start -> type ID LPAREN
-Rule 17    func -> func_start params RPAREN LBRACKET vars func_code_start body RBRACKET SEMICOLON
+Rule 17    func -> func_start params RPAREN LBRACE vars func_code_start body RBRACE SEMICOLON
 Rule 18    func_code_start -> <empty>
 Rule 19    params -> param_list
 Rule 20    params -> empty
@@ -91,8 +96,8 @@ GT                   : 49
 ID                   : 1 9 10 15 16 21 22 33 63 66 67
 IF                   : 34 35
 INT                  : 11
-LBRACE               : 23
-LBRACKET             : 17
+LBRACE               : 17 23
+LBRACKET             : 
 LPAREN               : 1 15 16 34 35 39 43 58 66 67
 LT                   : 50
 MAIN                 : 1
@@ -102,8 +107,8 @@ NEQ                  : 51
 PLUS                 : 53 59
 PRINT                : 43
 PROGRAM              : 1
-RBRACE               : 23
-RBRACKET             : 17
+RBRACE               : 17 23
+RBRACKET             : 
 RETURN               : 32
 RPAREN               : 1 17 34 35 39 43 58 66 67
 SEMICOLON            : 1 8 17 29 32 33 43
@@ -218,7 +223,7 @@ state 6
     (1) programa -> PROGRAM ID SEMICOLON program_start vars . funcs MAIN LPAREN RPAREN main_start body END
     (13) funcs -> . func funcs
     (14) funcs -> . empty
-    (17) func -> . func_start params RPAREN LBRACKET vars func_code_start body RBRACKET SEMICOLON
+    (17) func -> . func_start params RPAREN LBRACE vars func_code_start body RBRACE SEMICOLON
     (70) empty -> .
     (15) func_start -> . VOID ID LPAREN
     (16) func_start -> . type ID LPAREN
@@ -274,7 +279,7 @@ state 10
     (13) funcs -> func . funcs
     (13) funcs -> . func funcs
     (14) funcs -> . empty
-    (17) func -> . func_start params RPAREN LBRACKET vars func_code_start body RBRACKET SEMICOLON
+    (17) func -> . func_start params RPAREN LBRACE vars func_code_start body RBRACE SEMICOLON
     (70) empty -> .
     (15) func_start -> . VOID ID LPAREN
     (16) func_start -> . type ID LPAREN
@@ -301,7 +306,7 @@ state 11
 
 state 12
 
-    (17) func -> func_start . params RPAREN LBRACKET vars func_code_start body RBRACKET SEMICOLON
+    (17) func -> func_start . params RPAREN LBRACE vars func_code_start body RBRACE SEMICOLON
     (19) params -> . param_list
     (20) params -> . empty
     (21) param_list -> . ID COLON type COMMA param_list
@@ -413,7 +418,7 @@ state 22
 
 state 23
 
-    (17) func -> func_start params . RPAREN LBRACKET vars func_code_start body RBRACKET SEMICOLON
+    (17) func -> func_start params . RPAREN LBRACE vars func_code_start body RBRACE SEMICOLON
 
     RPAREN          shift and go to state 33
 
@@ -495,9 +500,9 @@ state 32
 
 state 33
 
-    (17) func -> func_start params RPAREN . LBRACKET vars func_code_start body RBRACKET SEMICOLON
+    (17) func -> func_start params RPAREN . LBRACE vars func_code_start body RBRACE SEMICOLON
 
-    LBRACKET        shift and go to state 40
+    LBRACE          shift and go to state 40
 
 
 state 34
@@ -553,7 +558,7 @@ state 39
 
 state 40
 
-    (17) func -> func_start params RPAREN LBRACKET . vars func_code_start body RBRACKET SEMICOLON
+    (17) func -> func_start params RPAREN LBRACE . vars func_code_start body RBRACE SEMICOLON
     (4) vars -> . VAR var_decl_list
     (5) vars -> . empty
     (70) empty -> .
@@ -596,7 +601,7 @@ state 43
 
 state 44
 
-    (17) func -> func_start params RPAREN LBRACKET vars . func_code_start body RBRACKET SEMICOLON
+    (17) func -> func_start params RPAREN LBRACE vars . func_code_start body RBRACE SEMICOLON
     (18) func_code_start -> .
 
     LBRACE          reduce using rule 18 (func_code_start -> .)
@@ -660,7 +665,7 @@ state 47
 
 state 48
 
-    (17) func -> func_start params RPAREN LBRACKET vars func_code_start . body RBRACKET SEMICOLON
+    (17) func -> func_start params RPAREN LBRACE vars func_code_start . body RBRACE SEMICOLON
     (23) body -> . LBRACE statement_list RBRACE
 
     LBRACE          shift and go to state 47
@@ -874,9 +879,9 @@ state 64
 
 state 65
 
-    (17) func -> func_start params RPAREN LBRACKET vars func_code_start body . RBRACKET SEMICOLON
+    (17) func -> func_start params RPAREN LBRACE vars func_code_start body . RBRACE SEMICOLON
 
-    RBRACKET        shift and go to state 86
+    RBRACE          shift and go to state 86
 
 
 state 66
@@ -884,14 +889,13 @@ state 66
     (23) body -> LBRACE statement_list RBRACE .
 
     END             reduce using rule 23 (body -> LBRACE statement_list RBRACE .)
-    RBRACKET        reduce using rule 23 (body -> LBRACE statement_list RBRACE .)
+    RBRACE          reduce using rule 23 (body -> LBRACE statement_list RBRACE .)
     ELSE            reduce using rule 23 (body -> LBRACE statement_list RBRACE .)
     ID              reduce using rule 23 (body -> LBRACE statement_list RBRACE .)
     IF              reduce using rule 23 (body -> LBRACE statement_list RBRACE .)
     WHILE           reduce using rule 23 (body -> LBRACE statement_list RBRACE .)
     PRINT           reduce using rule 23 (body -> LBRACE statement_list RBRACE .)
     RETURN          reduce using rule 23 (body -> LBRACE statement_list RBRACE .)
-    RBRACE          reduce using rule 23 (body -> LBRACE statement_list RBRACE .)
 
 
 state 67
@@ -1318,7 +1322,7 @@ state 85
 
 state 86
 
-    (17) func -> func_start params RPAREN LBRACKET vars func_code_start body RBRACKET . SEMICOLON
+    (17) func -> func_start params RPAREN LBRACE vars func_code_start body RBRACE . SEMICOLON
 
     SEMICOLON       shift and go to state 108
 
@@ -1700,12 +1704,12 @@ state 107
 
 state 108
 
-    (17) func -> func_start params RPAREN LBRACKET vars func_code_start body RBRACKET SEMICOLON .
+    (17) func -> func_start params RPAREN LBRACE vars func_code_start body RBRACE SEMICOLON .
 
-    VOID            reduce using rule 17 (func -> func_start params RPAREN LBRACKET vars func_code_start body RBRACKET SEMICOLON .)
-    INT             reduce using rule 17 (func -> func_start params RPAREN LBRACKET vars func_code_start body RBRACKET SEMICOLON .)
-    FLOAT           reduce using rule 17 (func -> func_start params RPAREN LBRACKET vars func_code_start body RBRACKET SEMICOLON .)
-    MAIN            reduce using rule 17 (func -> func_start params RPAREN LBRACKET vars func_code_start body RBRACKET SEMICOLON .)
+    VOID            reduce using rule 17 (func -> func_start params RPAREN LBRACE vars func_code_start body RBRACE SEMICOLON .)
+    INT             reduce using rule 17 (func -> func_start params RPAREN LBRACE vars func_code_start body RBRACE SEMICOLON .)
+    FLOAT           reduce using rule 17 (func -> func_start params RPAREN LBRACE vars func_code_start body RBRACE SEMICOLON .)
+    MAIN            reduce using rule 17 (func -> func_start params RPAREN LBRACE vars func_code_start body RBRACE SEMICOLON .)
 
 
 state 109

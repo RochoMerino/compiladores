@@ -1,0 +1,32 @@
+program fibonacci;
+var n : int;
+
+void fibIterative(limit: int) {
+    var a, b, temp, i : int;
+    {
+        a = 0;
+        b = 1;
+        print("Fibonacci iterative (first ", limit, " numbers):");
+        if (limit > 0) {
+            print(a);
+        }
+        if (limit > 1) {
+            print(b);
+        }
+        i = 2;
+        while (i < limit) do {
+            temp = a + b;
+            print(temp);
+            a = b;
+            b = temp;
+            i = i + 1;
+        }
+    }
+};
+
+main() {
+    n = 10;
+    fibIterative(n);
+}
+end
+

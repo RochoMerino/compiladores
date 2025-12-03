@@ -1,4 +1,3 @@
-
 import ply.lex as lex
 
 class PatitoLexer:

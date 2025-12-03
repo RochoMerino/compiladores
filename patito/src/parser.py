@@ -117,7 +117,7 @@ class PatitoParser:
         p[0] = func_name
 
     def p_func_with_start(self, p):
-        '''func : func_start params RPAREN LBRACKET vars func_code_start body RBRACKET SEMICOLON'''
+        '''func : func_start params RPAREN LBRACE vars func_code_start body RBRACE SEMICOLON'''
         # Generamos el cuadruplo de ENDFUNC
         self.quad_gen.generate('ENDFUNC', None, None, None)
         # Sakimos de la funcion
