@@ -3,6 +3,8 @@ from lexer import PatitoLexer
 from semantic_analyzer import SemanticAnalyzer
 from quadruple_generator import QuadrupleGenerator
 
+
+
 class PatitoParser:
     def __init__(self):
         # Constuir el lexer
@@ -329,6 +331,7 @@ class PatitoParser:
         # Si el token es del tipo esperado entonces es verdadero
         return token_type == expected_type
 
+# 4 lowest priority
     def p_expression(self, p):
         '''expression : exp
                       | exp GT exp
@@ -367,6 +370,7 @@ class PatitoParser:
             # "Devolvemos" el tipo de resultado, con el operador, con el operand izquierdo y el operand derecho
             p[0] = ('type_info', result_type, (operator, p[1], p[3]))
 
+# 3
     def p_exp(self, p):
         '''exp : termino
                | exp PLUS termino
@@ -405,6 +409,7 @@ class PatitoParser:
             # "Devolvemos" el tipo de resultado, con el operador, con el operand izquierdo y el operand derecho
             p[0] = ('type_info', result_type, (operator, p[1], p[3]))
 
+# 2
     def p_termino(self, p):
         '''termino : factor
                    | termino MULT factor
@@ -442,6 +447,7 @@ class PatitoParser:
             # Devolvemos el tipo de resultado, operador, op izquierdo y op derecho
             p[0] = ('type_info', result_type, (operator, p[1], p[3]))
 
+# 1 highest priority
     def p_factor(self, p):
         '''factor : LPAREN expression RPAREN
                   | PLUS factor
@@ -675,6 +681,7 @@ class PatitoParser:
         """Get the list of generated quadruples."""
         # Obtenemos la lista de cuadruplos generados
         return self.quad_gen.get_quadruples()
+
 
 def build_parser():
     # Devolvemos el objeto PatitoParser
