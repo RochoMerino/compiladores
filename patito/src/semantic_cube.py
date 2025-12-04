@@ -11,25 +11,18 @@ class SemanticCube:
 
         for op in self.arithmetic_operations:
             cube[('int', op, 'int')] = 'int'
-
         for op in self.arithmetic_operations:
             cube[('int', op, 'float')] = 'float'
-
         for op in self.arithmetic_operations:
             cube[('float', op, 'int')] = 'float'
-
         for op in self.arithmetic_operations:
             cube[('float', op, 'float')] = 'float'
-
         for op in self.comparison_operations:
             cube[('int', op, 'int')] = 'int'
-
         for op in self.comparison_operations:
             cube[('int', op, 'float')] = 'int'
-
         for op in self.comparison_operations:
             cube[('float', op, 'int')] = 'int'
-
         for op in self.comparison_operations:
             cube[('float', op, 'float')] = 'int'
 

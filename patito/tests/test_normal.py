@@ -14,39 +14,17 @@ def test_compiler():
     print("="*60)
     
     codigo = """
-    program test;
-var x, y : int;
-
-void suma(a: int, b: int) {
-    var t : int;
-    {
-        t = a + b;
-        print("Suma:", t);
+    program ejemplo;
+    var
+        int: i;
+        float: f;
+    main() {
+        i = 10;
+        if (i > 5) {
+            f = i * 2.5;
+        }
     }
-};
-
-main() {
-    x = 5;
-    y = 10;
-    
-    print("Iniciando...");
-    
-    if (x < y) {
-        print("x es menor que y");
-    } else {
-        print("x es mayor o igual que y");
-    }
-    
-    while (x < 8) do {
-        print("x vale:", x);
-        x = x + 1;
-    }
-    
-    suma(x, y);
-    
-    print("Fin");
-}
-end
+    end
     """
     
     print("CODIGO:")

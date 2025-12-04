@@ -123,32 +123,3 @@ class ScopedVariableTable:
         self.global_table.print_table()
         if self.local_table:
             self.local_table.print_table()
-
-
-# if __name__ == '__main__':
-#     print("DEMO: Tabla de Variables\n")
-
-#     table = VariableTable('global')
-#     table.add_variable('x', 'int', 'global', 1)
-#     table.add_variable('y', 'float', 'global', 2)
-#     table.print_table()
-
-#     scoped = ScopedVariableTable()
-#     scoped.add_variable('global_x', 'int', 1)
-#     scoped.add_variable('global_y', 'float', 2)
-
-#     scoped.enter_function('foo')
-#     scoped.add_parameter('param_a', 'int', 5)
-#     scoped.add_variable('local_z', 'float', 6)
-
-#     scoped.print_all_tables()
-
-#     print("\nPRUEBAS DE BUSQUEDA:")
-#     print(f"local_z: {scoped.lookup('local_z')}")
-#     print(f"global_x: {scoped.lookup('global_x')}")
-#     print(f"param_a: {scoped.lookup('param_a')}")
-
-#     try:
-#         scoped.lookup('undefined', line=10)
-#     except Exception as e:
-#         print(f"\nError capturado: {e}")

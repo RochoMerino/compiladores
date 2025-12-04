@@ -20,10 +20,6 @@ class VirtualMachine:
         self.quadruples = quadruples
 
     def set_constants(self, constants):
-        """
-        Load constants into memory.
-        constants: dict mapping address -> value
-        """
         self.constant_memory = constants
 
     def get_value(self, address):
@@ -71,7 +67,7 @@ class VirtualMachine:
             raise Exception(f"Segmentation Fault: Address {address} out of range")
 
     def execute(self):
-        print("--- STARTING VIRTUAL MACHINE ---")
+        print("--- VIRTUAL MACHINE ---")
         self.instruction_pointer = 0
         
         while self.instruction_pointer < len(self.quadruples):

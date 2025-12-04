@@ -18,7 +18,7 @@ class MemoryManager:
         # Temporal (resets for each function)
         self.temp_int = 0
         self.temp_float = 0
-        self.temp_bool = 0 # For boolean results in conditions
+        self.temp_bool = 0 
         
         # Constants (persistent)
         self.const_int = 0
@@ -63,16 +63,12 @@ class MemoryManager:
             self.temp_float += 1
             return addr
         elif type_ == 'bool':
-             # Let's put bools at the end of temp segment or give them their own range
-             # For simplicity, let's say bools share int space or use a specific range
-             # Let's use 6900 for bools
              addr = self.TEMP_BASE + 1900 + self.temp_bool
              self.temp_bool += 1
              return addr
         return None
 
     def get_const_address(self, type_, value):
-        # Check if constant already exists (optimization)
         for addr, val in self.constant_memory.items():
             if val == value and self._get_type_from_addr(addr) == type_:
                 return addr
