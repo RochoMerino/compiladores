@@ -1,1 +1,0 @@
-## Los tests fueron hechos con IA
